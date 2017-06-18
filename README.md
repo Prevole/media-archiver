@@ -16,7 +16,7 @@ $> npm install -g media-archiver
 * `--dryRun | -r`: Dry run. Do the lookup part with console outputs without applying any change
 
 ```
-$> media-archiver -s ~/some/dir -d ~/another/dir
+$> media-archiver -s ~/some/dir -d ~/another/dir -m copy -r
 ```
 
 # Config file
