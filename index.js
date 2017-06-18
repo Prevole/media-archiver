@@ -86,8 +86,8 @@ function findPreciseDestination(destPath, destFileName, destFileStat) {
     return findPreciseDestinationInternal(fullPath, destFileName, destFileStat);
 }
 
-function getPreciseDestinationPath(destPath, fileStats, fileName) {
-    var datePath = moment(fileStats.mtime).format('YYYY/MM/DD');
+function getPreciseDestinationPath(destPath, destFileName, destFileStats) {
+    var datePath = moment(destFileStats.mtime).format('YYYY/MM/DD');
     var fullPath = path.join(destPath, datePath);
 
     var idx = 0;
@@ -102,7 +102,7 @@ function getPreciseDestinationPath(destPath, fileStats, fileName) {
         }
     }
 
-    return path.join(fullPath, alphabet[idx]);
+    return path.join(fullPath, alphabet[idx], destFileName);
 }
 
 function buildFileDestination(filePath) {
@@ -117,7 +117,7 @@ function buildFileDestination(filePath) {
         if (mode === 'date') {
             dest = findPreciseDestination(fileDestBasePath, filePathDescription.base, stats);
         } else {
-            dest = getPreciseDestinationPath(fileDestBasePath, stats);
+            dest = getPreciseDestinationPath(fileDestBasePath, filePathDescription.base, stats);
         }
 
         if (dest) {
