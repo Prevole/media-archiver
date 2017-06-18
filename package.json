@@ -1,0 +1,25 @@
+{
+  "name": "media-archiver",
+  "version": "0.0.1",
+  "description": "Archiver for media files imported from mobile devices",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "media-archiver": "bin/media-archiver"
+  },
+  "keywords": [
+    "media",
+    "archiver"
+  ],
+  "author": "Prevole",
+  "license": "MIT",
+  "dependencies": {
+    "command-line-args": "^3.0.5",
+    "fs-extra": "^3.0.1",
+    "lodash": "^4.17.4",
+    "untildify": "^3.0.2",
+    "yamljs": "^0.2.10"
+  }
+}
