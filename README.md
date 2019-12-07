@@ -14,6 +14,7 @@ $> npm install -g media-archiver
 * `--dest | -d`: The destination directory
 * `--mode | -m`: The mode: `copy`, `move` or `date`. Date is for fixing `atime` and `mtime` of destination file
 * `--dryRun | -r`: Dry run. Do the lookup part with console outputs without applying any change
+* `--recurse | -u`: Recurse through sub directories
 
 ```
 $> media-archiver -s ~/some/dir -d ~/another/dir -m copy -r

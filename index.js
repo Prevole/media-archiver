@@ -22,6 +22,10 @@ const optionDefinitions = [{
     name: 'dryRun',
     alias: 'r',
     type: Boolean
+}, {
+    name: 'recurse',
+    alias: 'u',
+    type: Boolean
 }];
 
 const alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
@@ -34,6 +38,7 @@ const dest = untildify(options.dest);
 
 const mode = options.mode || config.mode || 'copy';
 const dryRun = options.dryRun || config.dryRun;
+const recurse = options.recurse;
 
 function getBaseDestinationPath(filePathDescription) {
     var type = _.find(config.media, function(media) {
@@ -129,37 +134,44 @@ function buildFileDestination(filePath) {
                 mtime: stats.mtime
             };
         }
+    } else if (recurse && stats && stats.isDirectory()) {
+        process.stdout.write('\n');
+        return prepareFileOperations(filePath);
     } else {
         console.error('Unable to stat the file ' + filePath);
         process.exit(2);
     }
 }
 
-function buildFileOperations(files) {
+function buildFileOperations(basePath, files) {
     var fileOperations = [];
 
     console.log(files.length + ' files to process.');
 
-    files.forEach(function(file, index) {
+    files.forEach(function(file) {
         if (file === '.DS_Store') {
             return;
         }
 
         process.stdout.write('.');
 
-        var destFile = buildFileDestination(path.join(src, file));
+        var destFile = buildFileDestination(path.join(basePath, file));
 
         if (destFile) {
-            fileOperations.push({
-                file: file,
-                atime: destFile.atime,
-                atimeMs: destFile.atimeMs,
-                mtime: destFile.mtime,
-                mtimeMs: destFile.mtimeMs,
-                src: path.join(src, file),
-                destDir: path.parse(destFile.dest).dir,
-                destFile: destFile.dest
-            });
+            if (Array.isArray(destFile)) {
+                fileOperations = fileOperations.concat(destFile);
+            } else {
+                fileOperations.push({
+                    file: file,
+                    atime: destFile.atime,
+                    atimeMs: destFile.atimeMs,
+                    mtime: destFile.mtime,
+                    mtimeMs: destFile.mtimeMs,
+                    src: path.join(basePath, file),
+                    destDir: path.parse(destFile.dest).dir,
+                    destFile: destFile.dest
+                });
+            }
         }
     });
 
@@ -216,21 +228,24 @@ function processDestFile(fileOperation) {
 }
 
 function processFileOperations(fileOperations) {
-    fileOperations.forEach(function(fileOperation, index) {
+    fileOperations.forEach(function(fileOperation) {
         processDestFolder(fileOperation);
         processDestFile(fileOperation);
     });
+}
+
+function prepareFileOperations(src) {
+    var files = fs.readdirSync(src);
+    if (files) {
+        return buildFileOperations(src, files);
+    } else {
+        console.error('Could not read source directory: ' + src);
+        process.exit(1);
+    }
 }
 
 if (config.dryRun) {
     console.info('Dry run: no writing operation will be done on files');
 }
 
-var files = fs.readdirSync(src);
-if (files) {
-    var fileOperations = buildFileOperations(files);
-    processFileOperations(fileOperations);
-} else {
-    console.error('Could not read source directory: ' + src);
-    process.exit(1);
-}
+processFileOperations(prepareFileOperations(src));
