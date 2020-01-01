@@ -26,6 +26,10 @@ const optionDefinitions = [{
     name: 'recurse',
     alias: 'u',
     type: Boolean
+}, {
+    name: 'since',
+    alias: 'n',
+    type: String
 }];
 
 const alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
@@ -35,6 +39,8 @@ const config = yaml.load(untildify('~/.media-archiver/conf.yml'));
 
 const src = untildify(options.src);
 const dest = untildify(options.dest);
+
+const since = moment(options.since || '1900-01-01', 'YYYY-MM-DD');
 
 const mode = options.mode || config.mode || 'copy';
 const dryRun = options.dryRun || config.dryRun;
@@ -110,10 +116,8 @@ function getPreciseDestinationPath(destPath, destFileName, destFileStats) {
     return path.join(fullPath, alphabet[idx], destFileName);
 }
 
-function buildFileDestination(filePath) {
-    var stats = fs.statSync(filePath);
-
-    if (stats && stats.isFile()) {
+function buildFileDestination(filePath, stats) {
+    if (stats.isFile()) {
         var filePathDescription = path.parse(filePath);
         var fileDestBasePath = getBaseDestinationPath(filePathDescription);
 
@@ -128,18 +132,20 @@ function buildFileDestination(filePath) {
         if (dest) {
             return {
                 dest: dest,
+                // Access time
                 atimeMs: moment(stats.atime).unix(),
                 atime: stats.atime,
+                // Modification time
                 mtimeMs: moment(stats.atime).unix(),
-                mtime: stats.mtime
+                mtime: stats.mtime,
+                // Birthtime (aka creation time)
+                btimeMs: moment(stats.birthtime).unix(),
+                btime: stats.birthtime
             };
         }
-    } else if (recurse && stats && stats.isDirectory()) {
+    } else if (recurse && stats.isDirectory()) {
         process.stdout.write('\n');
         return prepareFileOperations(filePath);
-    } else {
-        console.error('Unable to stat the file ' + filePath);
-        process.exit(2);
     }
 }
 
@@ -153,25 +159,39 @@ function buildFileOperations(basePath, files) {
             return;
         }
 
-        process.stdout.write('.');
+        var filePath = path.join(basePath, file);
+        var stats = fs.statSync(filePath);
 
-        var destFile = buildFileDestination(path.join(basePath, file));
-
-        if (destFile) {
-            if (Array.isArray(destFile)) {
-                fileOperations = fileOperations.concat(destFile);
-            } else {
-                fileOperations.push({
-                    file: file,
-                    atime: destFile.atime,
-                    atimeMs: destFile.atimeMs,
-                    mtime: destFile.mtime,
-                    mtimeMs: destFile.mtimeMs,
-                    src: path.join(basePath, file),
-                    destDir: path.parse(destFile.dest).dir,
-                    destFile: destFile.dest
-                });
+        if (stats) {
+            if (moment(stats.birthtime).isSameOrBefore(since)) {
+                return;
             }
+
+            process.stdout.write('.');
+
+            var destFile = buildFileDestination(filePath, stats);
+
+            if (destFile) {
+                if (Array.isArray(destFile)) {
+                    fileOperations = fileOperations.concat(destFile);
+                } else {
+                    fileOperations.push({
+                        file: file,
+                        atime: destFile.atime,
+                        atimeMs: destFile.atimeMs,
+                        mtime: destFile.mtime,
+                        mtimeMs: destFile.mtimeMs,
+                        btime: destFile.btime,
+                        btimeMs: destFile.btimeMs,
+                        src: path.join(basePath, file),
+                        destDir: path.parse(destFile.dest).dir,
+                        destFile: destFile.dest
+                    });
+                }
+            }
+        } else {
+            console.error('Unable to stat the file ' + filePath);
+            process.exit(2);
         }
     });
 
@@ -192,6 +212,7 @@ function fixDates(fileOperation) {
     console.info('Fix the date of the file: ' + fileOperation.destFile + ' from file: ' + fileOperation.src);
     console.info('Update time: ' + fileOperation.mtime + ' (' + fileOperation.mtimeMs + ')');
     console.info('Access time: ' + fileOperation.atime + ' (' + fileOperation.atimeMs + ')');
+    console.info('Birth time: ' + fileOperation.btime + ' (' + fileOperation.btimeMs + '), not usable yet.');
     if (!dryRun) {
         fs.utimesSync(fileOperation.destFile, fileOperation.atime, fileOperation.mtime);
     }
