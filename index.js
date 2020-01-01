@@ -249,6 +249,8 @@ function processDestFile(fileOperation) {
 }
 
 function processFileOperations(fileOperations) {
+    console.info('');
+    console.info('Start the file operations:');
     fileOperations.forEach(function(fileOperation) {
         processDestFolder(fileOperation);
         processDestFile(fileOperation);
