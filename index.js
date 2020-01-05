@@ -152,7 +152,7 @@ function buildFileDestination(filePath, stats) {
 function buildFileOperations(basePath, files) {
     var fileOperations = [];
 
-    console.log(files.length + ' files to process.');
+    console.log(files.length + ' files to analyze.');
 
     files.forEach(function(file) {
         if (file === '.DS_Store') {
@@ -163,11 +163,11 @@ function buildFileOperations(basePath, files) {
         var stats = fs.statSync(filePath);
 
         if (stats) {
+            process.stdout.write('.');
+
             if (moment(stats.birthtime).isSameOrBefore(since)) {
                 return;
             }
-
-            process.stdout.write('.');
 
             var destFile = buildFileDestination(filePath, stats);
 
@@ -251,6 +251,8 @@ function processDestFile(fileOperation) {
 function processFileOperations(fileOperations) {
     console.info('');
     console.info('Start the file operations:');
+    console.log(fileOperations.length + ' file operations to process.');
+
     fileOperations.forEach(function(fileOperation) {
         processDestFolder(fileOperation);
         processDestFile(fileOperation);
