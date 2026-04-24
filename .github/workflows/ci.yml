@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build
+      run: npm run build
+
+    - name: Setup Reviewdog
+      uses: reviewdog/action-setup@e04ffabe3898a0af8d0fb1af00c188831c4b5893 # v1.3.2
+      with:
+        reviewdog_version: latest
+
+    - name: Run tests with coverage
+      id: tests
+      run: |
+        npm run test:coverage
+        echo "test_exit_code=$?" >> "$GITHUB_OUTPUT"
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage/lcov.info
+        fail_ci_if_error: false
+
+    - name: Lint
+      id: lint
+      run: |
+        npx eslint . --ext .ts -f rdjson -o eslint-report.json || true
+        echo "lint_exit_code=$?" >> "$GITHUB_OUTPUT"
+
+    - name: Publish lint results
+      id: reviewdog
+      env:
+        REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        reviewdog \
+          -f=rdjson \
+          -reporter=github-check \
+          -name="ESLint" \
+          -filter-mode=nofilter \
+          -fail-level=any < eslint-report.json

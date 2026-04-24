@@ -2,25 +2,58 @@
   "name": "media-archiver",
   "version": "0.0.2",
   "description": "Archiver for media files imported from mobile devices",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "repository": "github:Prevole/media-archiver",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
-    "media-archiver": "bin/media-archiver"
+    "media-archiver": "dist/bin/media-archiver.js"
+  },
+  "publishConfig": {
+    "provenance": true
+  },
+  "scripts": {
+    "clean": "rm -rf dist && rm -f tsconfig.tsbuildinfo",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "test:e2e:watch": "vitest --watch --config vitest.e2e.config.ts",
+    "test:all": "npm run test && npm run test:e2e",
+    "lint": "eslint src/**/*.ts e2e/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts e2e/**/*.ts --fix"
   },
   "keywords": [
     "media",
-    "archiver"
+    "archiver",
+    "photos",
+    "videos"
   ],
   "author": "Prevole",
   "license": "MIT",
   "dependencies": {
-    "command-line-args": "^3.0.5",
-    "fs-extra": "^3.0.1",
-    "lodash": "^4.17.15",
-    "moment": "^2.24.0",
-    "untildify": "^3.0.2",
-    "yamljs": "^0.2.10"
+    "cli-progress": "^3.12.0",
+    "command-line-args": "^6.0.1",
+    "js-yaml": "^4.1.0",
+    "pino": "^9.7.0",
+    "pino-pretty": "^13.1.3"
+  },
+  "devDependencies": {
+    "@semantic-release/github": "^12.0.2",
+    "@types/cli-progress": "^3.11.6",
+    "@types/command-line-args": "^5.2.3",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.34.0",
+    "@typescript-eslint/parser": "^8.34.0",
+    "@vitest/coverage-istanbul": "^3.2.3",
+    "eslint": "^9.28.0",
+    "eslint-formatter-rdjson": "^1.0.6",
+    "eslint-plugin-import": "^2.29.1",
+    "semantic-release": "^24.2.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.3"
   }
 }
