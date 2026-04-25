@@ -11,18 +11,20 @@ npm install -g media-archiver
 ## Usage
 
 ```sh
-media-archiver --src <source> --target <target> [options]
+media-archiver --source <dir> --target <dir> [options]
 ```
 
 ### Options
 
 | Option | Alias | Required | Default | Description |
 |--------|-------|----------|---------|-------------|
-| `--src` | `-s` | Yes | — | Source directory to scan |
+| `--source` | `-s` | Yes | — | Source directory to scan |
 | `--target` | `-t` | Yes | — | Target directory where files are archived |
 | `--mode` | `-m` | No | `copy` | Operation mode: `copy`, `move`, or `date` |
 | `--dry-run` | — | No | `false` | Preview operations without writing any files |
-| `--recurse` | `-r` | No | `false` | Scan subdirectories of `--src` recursively |
+| `--recurse` | `-r` | No | `false` | Scan subdirectories of `--source` recursively |
+| `--verbose` | `-v` | No | `false` | Print detailed logs for every file operation |
+| `--help` | `-h` | No | — | Display help message |
 
 ### Modes
 
@@ -30,17 +32,37 @@ media-archiver --src <source> --target <target> [options]
 - **`move`** — Move source files to the target directory
 - **`date`** — Fix `atime` and `mtime` of existing files in the target directory (useful after a manual move)
 
-### Example
+### Output
+
+Without `--verbose`, a progress bar is shown during processing, followed by a summary of destination folders written:
+
+```
+Source:  /Volumes/CARD/DCIM
+Target:  ~/Media
+Mode:    copy
+Recurse: false
+3 file operation(s) to process
+
+Folders written (2):
+  ~/Media/Photos/2025/08/28/a
+  ~/Media/Videos/2025/09/16/a
+
+Done
+```
+
+With `--verbose`, every file operation is logged individually with timestamps and log levels.
+
+### Examples
 
 ```sh
 # Copy photos and videos from a memory card, dry-run first
-media-archiver --src /Volumes/CARD/DCIM --target ~/Media --dry-run
+media-archiver --source /Volumes/CARD/DCIM --target ~/Media --dry-run
 
 # Then for real
-media-archiver --src /Volumes/CARD/DCIM --target ~/Media
+media-archiver --source /Volumes/CARD/DCIM --target ~/Media
 
-# Move files recursively
-media-archiver -s /Volumes/CARD -t ~/Media -m move -r
+# Move files recursively with detailed logs
+media-archiver -s /Volumes/CARD -t ~/Media -m move -r --verbose
 ```
 
 ## Destination structure
@@ -109,11 +131,13 @@ Files whose extension is not matched by any type are silently skipped.
 
 ```sh
 npm install
-npm run build       # Compile TypeScript
-npm test            # Run tests
+npm run build          # Compile TypeScript
+npm test               # Run unit tests
+npm run test:e2e       # Run end-to-end tests
+npm run test:all       # Run all tests
 npm run test:coverage  # Run tests with coverage report
-npm run lint        # Check code style
-npm run lint:fix    # Auto-fix code style issues
+npm run lint           # Check code style
+npm run lint:fix       # Auto-fix code style issues
 ```
 
 ## License

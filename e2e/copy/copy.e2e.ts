@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { assertDirectoryMatchesExpected } from '../helpers/compare.js';
 import { cleanDirectory, createSourceFiles, createTargetFile } from '../helpers/fixtures.js';
 import { runArchiver, scenarioPaths } from '../helpers/runner.js';

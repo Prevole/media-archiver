@@ -2,8 +2,10 @@
   "extends": "./tsconfig.json",
   "include": [
     "src/**/*.ts",
+    "e2e/**/*.ts",
     "dist/**/*.d.ts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "vitest.e2e.config.ts"
   ],
   "exclude": [
     "node_modules"
