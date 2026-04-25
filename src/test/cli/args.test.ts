@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { displayHelp, parseArgs } from '../../cli/args.js';
+import { displayHelp, displayVersion, parseArgs } from '../../cli/args.js';
 import type { AppConfig } from '../../models/config.js';
+import type { ArchiveOptions } from '../../models/fileOperation.js';
 
 const baseConfig: AppConfig = {
   media: {
@@ -10,70 +11,76 @@ const baseConfig: AppConfig = {
   },
 };
 
+/** Narrow the result to ArchiveOptions, failing the test if it isn't. */
+function asOptions(result: ArchiveOptions | 'version' | null): ArchiveOptions {
+  expect(result).not.toBeNull();
+  expect(result).not.toBe('version');
+  return result as ArchiveOptions;
+}
+
 describe('parseArgs', () => {
   it('parses required --source and --target', () => {
-    const opts = parseArgs(baseConfig, ['--source', '/media/card', '--target', '/archive']);
-    expect(opts).not.toBeNull();
-    expect(opts!.source).toBe('/media/card');
-    expect(opts!.target).toBe('/archive');
+    const opts = asOptions(parseArgs(baseConfig, ['--source', '/media/card', '--target', '/archive']));
+    expect(opts.source).toBe('/media/card');
+    expect(opts.target).toBe('/archive');
   });
 
   it('defaults mode to copy when not set in args or config', () => {
-    const opts = parseArgs(baseConfig, ['--source', '/src', '--target', '/dst']);
-    expect(opts!.mode).toBe('copy');
+    const opts = asOptions(parseArgs(baseConfig, ['--source', '/src', '--target', '/dst']));
+    expect(opts.mode).toBe('copy');
   });
 
   it('uses config mode when --mode not provided', () => {
     const config: AppConfig = { media: { ...baseConfig.media, mode: 'move' } };
-    const opts = parseArgs(config, ['--source', '/src', '--target', '/dst']);
-    expect(opts!.mode).toBe('move');
+    const opts = asOptions(parseArgs(config, ['--source', '/src', '--target', '/dst']));
+    expect(opts.mode).toBe('move');
   });
 
   it('uses CLI --mode over config mode', () => {
     const config: AppConfig = { media: { ...baseConfig.media, mode: 'move' } };
-    const opts = parseArgs(config, ['--source', '/src', '--target', '/dst', '--mode', 'date']);
-    expect(opts!.mode).toBe('date');
+    const opts = asOptions(parseArgs(config, ['--source', '/src', '--target', '/dst', '--mode', 'date']));
+    expect(opts.mode).toBe('date');
   });
 
   it('defaults dryRun to false', () => {
-    const opts = parseArgs(baseConfig, ['--source', '/src', '--target', '/dst']);
-    expect(opts!.dryRun).toBe(false);
+    const opts = asOptions(parseArgs(baseConfig, ['--source', '/src', '--target', '/dst']));
+    expect(opts.dryRun).toBe(false);
   });
 
   it('sets dryRun to true when --dry-run flag is present', () => {
-    const opts = parseArgs(baseConfig, ['--source', '/src', '--target', '/dst', '--dry-run']);
-    expect(opts!.dryRun).toBe(true);
+    const opts = asOptions(parseArgs(baseConfig, ['--source', '/src', '--target', '/dst', '--dry-run']));
+    expect(opts.dryRun).toBe(true);
   });
 
   it('uses config dryRun when --dry-run not provided', () => {
     const config: AppConfig = { media: { ...baseConfig.media, dryRun: true } };
-    const opts = parseArgs(config, ['--source', '/src', '--target', '/dst']);
-    expect(opts!.dryRun).toBe(true);
+    const opts = asOptions(parseArgs(config, ['--source', '/src', '--target', '/dst']));
+    expect(opts.dryRun).toBe(true);
   });
 
   it('defaults recurse to false', () => {
-    const opts = parseArgs(baseConfig, ['--source', '/src', '--target', '/dst']);
-    expect(opts!.recurse).toBe(false);
+    const opts = asOptions(parseArgs(baseConfig, ['--source', '/src', '--target', '/dst']));
+    expect(opts.recurse).toBe(false);
   });
 
   it('sets recurse to true when -r flag is present', () => {
-    const opts = parseArgs(baseConfig, ['--source', '/src', '--target', '/dst', '-r']);
-    expect(opts!.recurse).toBe(true);
+    const opts = asOptions(parseArgs(baseConfig, ['--source', '/src', '--target', '/dst', '-r']));
+    expect(opts.recurse).toBe(true);
   });
 
   it('defaults verbose to false', () => {
-    const opts = parseArgs(baseConfig, ['--source', '/src', '--target', '/dst']);
-    expect(opts!.verbose).toBe(false);
+    const opts = asOptions(parseArgs(baseConfig, ['--source', '/src', '--target', '/dst']));
+    expect(opts.verbose).toBe(false);
   });
 
   it('sets verbose to true when --verbose flag is present', () => {
-    const opts = parseArgs(baseConfig, ['--source', '/src', '--target', '/dst', '--verbose']);
-    expect(opts!.verbose).toBe(true);
+    const opts = asOptions(parseArgs(baseConfig, ['--source', '/src', '--target', '/dst', '--verbose']));
+    expect(opts.verbose).toBe(true);
   });
 
   it('sets verbose to true when -v alias is present', () => {
-    const opts = parseArgs(baseConfig, ['--source', '/src', '--target', '/dst', '-v']);
-    expect(opts!.verbose).toBe(true);
+    const opts = asOptions(parseArgs(baseConfig, ['--source', '/src', '--target', '/dst', '-v']));
+    expect(opts.verbose).toBe(true);
   });
 
   it('returns null when --help is provided', () => {
@@ -84,10 +91,14 @@ describe('parseArgs', () => {
     expect(parseArgs(baseConfig, ['-h'])).toBeNull();
   });
 
+  it('returns "version" when --version is provided', () => {
+    expect(parseArgs(baseConfig, ['--version'])).toBe('version');
+  });
+
   it('expands tilde in source and target', () => {
-    const opts = parseArgs(baseConfig, ['--source', '~/media', '--target', '~/archive']);
-    expect(opts!.source).not.toContain('~');
-    expect(opts!.target).not.toContain('~');
+    const opts = asOptions(parseArgs(baseConfig, ['--source', '~/media', '--target', '~/archive']));
+    expect(opts.source).not.toContain('~');
+    expect(opts.target).not.toContain('~');
   });
 
   it('throws when --source is missing', () => {
@@ -105,18 +116,18 @@ describe('parseArgs', () => {
   });
 
   it('supports -s alias for --source', () => {
-    const opts = parseArgs(baseConfig, ['-s', '/src', '--target', '/dst']);
-    expect(opts!.source).toBe('/src');
+    const opts = asOptions(parseArgs(baseConfig, ['-s', '/src', '--target', '/dst']));
+    expect(opts.source).toBe('/src');
   });
 
   it('supports -t alias for --target', () => {
-    const opts = parseArgs(baseConfig, ['--source', '/src', '-t', '/dst']);
-    expect(opts!.target).toBe('/dst');
+    const opts = asOptions(parseArgs(baseConfig, ['--source', '/src', '-t', '/dst']));
+    expect(opts.target).toBe('/dst');
   });
 
   it('supports -m alias for --mode', () => {
-    const opts = parseArgs(baseConfig, ['--source', '/src', '--target', '/dst', '-m', 'move']);
-    expect(opts!.mode).toBe('move');
+    const opts = asOptions(parseArgs(baseConfig, ['--source', '/src', '--target', '/dst', '-m', 'move']));
+    expect(opts.mode).toBe('move');
   });
 });
 
@@ -148,6 +159,33 @@ describe('displayHelp', () => {
     expect(output).toContain('--dry-run');
     expect(output).toContain('--recurse');
     expect(output).toContain('--verbose');
+    expect(output).toContain('--version');
     expect(output).toContain('--help');
+  });
+
+  it('includes the package version in the header', () => {
+    displayHelp();
+    expect(output).toMatch(/media-archiver v\d+\.\d+\.\d+/);
+  });
+});
+
+describe('displayVersion', () => {
+  let output = '';
+
+  beforeEach(() => {
+    output = '';
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      output += chunk;
+      return true;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('prints the package version followed by a newline', () => {
+    displayVersion();
+    expect(output).toMatch(/^\d+\.\d+\.\d+\n$/);
   });
 });
