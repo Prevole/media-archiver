@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 
 import pino from 'pino';
-import { parseArgs } from '../cli/args.js';
+import { displayHelp, parseArgs } from '../cli/args.js';
 import { loadConfig } from '../config/loader.js';
 import { archive } from '../services/archiver.js';
+
 try {
   const config = loadConfig();
   const options = parseArgs(config);
+
+  if (options === null) {
+    displayHelp();
+    process.exit(0);
+  }
 
   const logger = pino({
     transport: {

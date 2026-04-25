@@ -49,7 +49,7 @@ jobs:
     - name: Lint
       id: lint
       run: |
-        npx eslint . --ext .ts -f rdjson -o eslint-report.json || true
+        npx eslint src/**/*.ts e2e/**/*.ts -f rdjson -o eslint-report.json || true
         echo "lint_exit_code=$?" >> "$GITHUB_OUTPUT"
 
     - name: Publish lint results

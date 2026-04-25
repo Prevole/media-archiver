@@ -1,9 +1,9 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pino from 'pino';
-import { archive } from '../../src/services/archiver.js';
 import type { AppConfig } from '../../src/models/config.js';
 import type { ArchiveOptions } from '../../src/models/fileOperation.js';
+import { archive } from '../../src/services/archiver.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

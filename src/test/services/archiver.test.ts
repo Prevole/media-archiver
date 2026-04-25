@@ -112,6 +112,27 @@ describe('archive', () => {
     expect(mockReporter.finish).toHaveBeenCalled();
   });
 
+  it('prints folder summary lines returned by reporter', () => {
+    const op = makeOperation('/target/Photos/2026/04/05/a');
+    vi.mocked(fileScanner.scanDirectory).mockReturnValue([op]);
+    mockReporter.finish.mockReturnValue(['/target/Photos/2026/04/05/a', '/target/Videos/2026/04/05/a']);
+    const written: string[] = [];
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => { written.push(String(chunk)); return true; });
+    archive({ ...options, verbose: false }, config, logger);
+    vi.restoreAllMocks();
+    const out = written.join('');
+    expect(out).toContain('/target/Photos/2026/04/05/a');
+    expect(out).toContain('/target/Videos/2026/04/05/a');
+  });
+
+  it('prints dry-run notice in non-verbose mode', () => {
+    const written: string[] = [];
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => { written.push(String(chunk)); return true; });
+    archive({ ...options, dryRun: true, verbose: false }, config, logger);
+    vi.restoreAllMocks();
+    expect(written.join('')).toContain('Dry-run mode enabled');
+  });
+
   it('does not use ProgressReporter in verbose mode', () => {
     const op = makeOperation();
     vi.mocked(fileScanner.scanDirectory).mockReturnValue([op]);
