@@ -48,7 +48,7 @@
     "@typescript-eslint/eslint-plugin": "^8.34.0",
     "@typescript-eslint/parser": "^8.34.0",
     "@vitest/coverage-istanbul": "^3.2.3",
-    "eslint": "^9.28.0",
+    "eslint": "^10.3.0",
     "eslint-formatter-rdjson": "^1.0.6",
     "eslint-plugin-import": "^2.29.1",
     "semantic-release": "^25.0.3",
