@@ -58,7 +58,11 @@ describe('archive', () => {
     vi.mocked(fs.readdirSync).mockReturnValue([]);
     vi.mocked(fileScanner.scanDirectory).mockReturnValue([]);
     vi.mocked(fileProcessor.processFileOperation).mockReturnValue(undefined);
-    vi.mocked(progressReporterModule.ProgressReporter).mockImplementation(() => mockReporter as never);
+    vi.mocked(progressReporterModule.ProgressReporter).mockImplementation(
+      function ProgressReporterMock() {
+        return mockReporter as never;
+      }
+    );
     mockReporter.start.mockClear();
     mockReporter.tick.mockClear();
     mockReporter.finish.mockClear();
