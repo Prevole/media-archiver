@@ -3,11 +3,13 @@ import { ProgressReporter } from '../../services/progressReporter.js';
 
 // Mock cli-progress so tests don't render to a real TTY
 vi.mock('cli-progress', () => {
-  const SingleBar = vi.fn().mockImplementation(() => ({
-    start: vi.fn(),
-    increment: vi.fn(),
-    stop: vi.fn(),
-  }));
+  const SingleBar = vi.fn(function SingleBarMock() {
+    return {
+      start: vi.fn(),
+      increment: vi.fn(),
+      stop: vi.fn(),
+    };
+  });
   return { SingleBar, Presets: { shades_classic: {} } };
 });
 

@@ -110,7 +110,7 @@ export function loadConfig(configPath: string = CONFIG_PATH): AppConfig {
   try {
     raw = fs.readFileSync(resolvedPath, 'utf-8');
   } catch (err) {
-    throw new Error(`Cannot read config file at ${resolvedPath}: ${(err as Error).message}`);
+    throw new Error(`Cannot read config file at ${resolvedPath}: ${(err as Error).message}`, { cause: err });
   }
 
   let parsed: unknown;
@@ -118,7 +118,7 @@ export function loadConfig(configPath: string = CONFIG_PATH): AppConfig {
   try {
     parsed = yaml.load(raw);
   } catch (err) {
-    throw new Error(`Config file is not valid YAML: ${(err as Error).message}`);
+    throw new Error(`Config file is not valid YAML: ${(err as Error).message}`, { cause: err });
   }
 
   return validateConfig(parsed);
