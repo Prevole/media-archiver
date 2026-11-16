@@ -59,7 +59,18 @@ export function copyFile(
 }
 
 /**
+ * Returns true when the error means that source and destination live on
+ * different filesystems (e.g. a local disk and a network share), where
+ * rename(2) cannot be used.
+ */
+function isCrossDeviceError(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === 'EXDEV';
+}
+
+/**
  * Moves the source file to the destination and fixes its timestamps.
+ * Falls back to copy + delete when the destination is on another filesystem,
+ * since rename(2) only works within a single device.
  * In dry-run mode, only logs the intended actions.
  */
 export function moveFile(
@@ -70,7 +81,21 @@ export function moveFile(
   logger.debug(`Move: ${operation.src} → ${operation.destFile}`);
 
   if (!dryRun) {
-    fs.renameSync(operation.src, operation.destFile);
+    try {
+      fs.renameSync(operation.src, operation.destFile);
+    } catch (error) {
+      if (!isCrossDeviceError(error)) {
+        throw error;
+      }
+
+      logger.debug(`Cross-device move: ${operation.src} → ${operation.destFile}`);
+      fs.copyFileSync(operation.src, operation.destFile);
+      fixDates(operation, dryRun, logger);
+      // Remove the source only after the copy and its timestamps succeeded.
+      fs.unlinkSync(operation.src);
+      return;
+    }
+
     fixDates(operation, dryRun, logger);
   }
 }

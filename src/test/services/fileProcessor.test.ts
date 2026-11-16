@@ -15,6 +15,12 @@ vi.mock('node:fs');
 
 const logger = pino({ level: 'silent' });
 
+function systemError(code: string): Error {
+  const error = new Error(`${code}: simulated filesystem error`);
+  Object.assign(error, { code });
+  return error;
+}
+
 function makeOperation(overrides: Partial<FileOperation> = {}): FileOperation {
   return {
     file: 'photo.jpg',
@@ -83,16 +89,61 @@ describe('copyFile', () => {
 });
 
 describe('moveFile', () => {
+  beforeEach(() => {
+    vi.mocked(fs.renameSync).mockReset();
+    vi.mocked(fs.copyFileSync).mockReset();
+    vi.mocked(fs.unlinkSync).mockReset();
+  });
+
   it('renames and fixes dates', () => {
     const op = makeOperation();
     moveFile(op, false, logger);
     expect(fs.renameSync).toHaveBeenCalledWith(op.src, op.destFile);
     expect(fs.utimesSync).toHaveBeenCalled();
+    expect(fs.copyFileSync).not.toHaveBeenCalled();
+    expect(fs.unlinkSync).not.toHaveBeenCalled();
+  });
+
+  it('falls back to copy, date fix and source deletion on EXDEV', () => {
+    vi.mocked(fs.renameSync).mockImplementationOnce(() => {
+      throw systemError('EXDEV');
+    });
+
+    const op = makeOperation();
+    moveFile(op, false, logger);
+
+    expect(fs.copyFileSync).toHaveBeenCalledWith(op.src, op.destFile);
+    expect(fs.utimesSync).toHaveBeenCalledWith(op.destFile, op.times.atime, op.times.mtime);
+    expect(fs.unlinkSync).toHaveBeenCalledWith(op.src);
+  });
+
+  it('keeps the source when the fallback copy fails', () => {
+    vi.mocked(fs.renameSync).mockImplementationOnce(() => {
+      throw systemError('EXDEV');
+    });
+    vi.mocked(fs.copyFileSync).mockImplementationOnce(() => {
+      throw systemError('ENOSPC');
+    });
+
+    expect(() => moveFile(makeOperation(), false, logger)).toThrow('ENOSPC');
+    expect(fs.unlinkSync).not.toHaveBeenCalled();
+  });
+
+  it('rethrows other rename errors without copying or deleting', () => {
+    vi.mocked(fs.renameSync).mockImplementationOnce(() => {
+      throw systemError('EACCES');
+    });
+
+    expect(() => moveFile(makeOperation(), false, logger)).toThrow('EACCES');
+    expect(fs.copyFileSync).not.toHaveBeenCalled();
+    expect(fs.unlinkSync).not.toHaveBeenCalled();
   });
 
   it('does nothing in dry-run mode', () => {
     moveFile(makeOperation(), true, logger);
     expect(fs.renameSync).not.toHaveBeenCalled();
+    expect(fs.copyFileSync).not.toHaveBeenCalled();
+    expect(fs.unlinkSync).not.toHaveBeenCalled();
   });
 });
 
