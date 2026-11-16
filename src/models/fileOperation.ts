@@ -19,6 +19,8 @@ export interface ArchiveOptions {
   recurse: boolean;
   /** When true, all log lines are printed; otherwise a progress bar is shown */
   verbose: boolean;
+  /** When true, print the active configuration and exit without archiving */
+  printConfig?: boolean;
 }
 
 /**

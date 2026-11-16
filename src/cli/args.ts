@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import commandLineArgs from 'command-line-args';
+import { dump as dumpYaml } from 'js-yaml';
 import type { AppConfig } from '../models/config.js';
 import type { ArchiveMode, ArchiveOptions } from '../models/fileOperation.js';
 import { expandTilde } from '../utils/path.js';
@@ -16,6 +17,7 @@ export const optionDefinitions = [
   { name: 'dry-run',              type: Boolean, description: 'Preview operations without writing any files' },
   { name: 'recurse',  alias: 'r', type: Boolean, description: 'Scan subdirectories of --source recursively' },
   { name: 'verbose',  alias: 'v', type: Boolean, description: 'Print detailed logs for every file operation' },
+  { name: 'print-config', alias: 'p', type: Boolean, description: 'Print the active configuration and exit' },
   { name: 'version',              type: Boolean, description: 'Print the current version and exit' },
   { name: 'help',     alias: 'h', type: Boolean, description: 'Display this help message and exit' },
 ];
@@ -51,11 +53,33 @@ export function displayVersion(): void {
 }
 
 /**
+ * Prints the effective configuration: config file values merged with the
+ * resolved CLI options. Paths are shown as "(not set)" when --print-config
+ * is used on its own, without --source and --target.
+ */
+export function displayConfig(config: AppConfig, options: ArchiveOptions): void {
+  const active = {
+    source: options.source || '(not set)',
+    target: options.target || '(not set)',
+    mode: options.mode,
+    dryRun: options.dryRun,
+    recurse: options.recurse,
+    verbose: options.verbose,
+    media: config.media,
+  };
+
+  const yaml = dumpYaml(active, { lineWidth: -1, noRefs: true }).trimEnd();
+  const indented = yaml.split('\n').map((line) => `  ${line}`).join('\n');
+  process.stdout.write(`Active configuration:\n${indented}\n`);
+}
+
+/**
  * Parses process.argv and merges with config defaults to produce
  * fully resolved ArchiveOptions.
  *
  * Returns `null` when --help is requested (caller should display help and exit).
  * Returns `'version'` when --version is requested (caller should display version and exit).
+ * With --print-config, source and target may be omitted.
  *
  * @throws If required arguments are missing or values are invalid.
  */
@@ -72,13 +96,17 @@ export function parseArgs(config: AppConfig, argv?: string[]): ArchiveOptions | 
     return 'version';
   }
 
+  // --- print-config ---
+  const printConfig: boolean = (raw['print-config'] as boolean | undefined) ?? false;
+
   // --- source ---
-  if (typeof raw['source'] !== 'string' || raw['source'].trim() === '') {
+  // Paths are optional when only printing the configuration.
+  if (!printConfig && (typeof raw['source'] !== 'string' || raw['source'].trim() === '')) {
     throw new Error('Missing required argument: --source (-s)');
   }
 
   // --- target ---
-  if (typeof raw['target'] !== 'string' || raw['target'].trim() === '') {
+  if (!printConfig && (typeof raw['target'] !== 'string' || raw['target'].trim() === '')) {
     throw new Error('Missing required argument: --target (-t)');
   }
 
@@ -99,12 +127,16 @@ export function parseArgs(config: AppConfig, argv?: string[]): ArchiveOptions | 
   // --- verbose ---
   const verbose: boolean = (raw['verbose'] as boolean | undefined) ?? false;
 
+  const rawSource = typeof raw['source'] === 'string' ? raw['source'].trim() : '';
+  const rawTarget = typeof raw['target'] === 'string' ? raw['target'].trim() : '';
+
   return {
-    source: expandTilde(raw['source'] as string),
-    target: expandTilde(raw['target'] as string),
+    source: rawSource === '' ? '' : expandTilde(rawSource),
+    target: rawTarget === '' ? '' : expandTilde(rawTarget),
     mode,
     dryRun,
     recurse,
     verbose,
+    printConfig,
   };
 }
