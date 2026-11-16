@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import yaml from 'js-yaml';
+import { load as loadYaml } from 'js-yaml';
 import type { AppConfig, MediaTypeConfig } from '../models/config.js';
 import { expandTilde } from '../utils/path.js';
 
@@ -116,7 +116,7 @@ export function loadConfig(configPath: string = CONFIG_PATH): AppConfig {
   let parsed: unknown;
 
   try {
-    parsed = yaml.load(raw);
+    parsed = loadYaml(raw);
   } catch (err) {
     throw new Error(`Config file is not valid YAML: ${(err as Error).message}`, { cause: err });
   }
