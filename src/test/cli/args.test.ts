@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { displayHelp, displayVersion, parseArgs } from '../../cli/args.js';
+import { displayConfig, displayHelp, displayVersion, parseArgs } from '../../cli/args.js';
 import type { AppConfig } from '../../models/config.js';
 import type { ArchiveOptions } from '../../models/fileOperation.js';
 
@@ -95,6 +95,33 @@ describe('parseArgs', () => {
     expect(parseArgs(baseConfig, ['--version'])).toBe('version');
   });
 
+  it('sets printConfig without requiring source or target', () => {
+    const opts = asOptions(parseArgs(baseConfig, ['--print-config']));
+    expect(opts.printConfig).toBe(true);
+    expect(opts.source).toBe('');
+    expect(opts.target).toBe('');
+  });
+
+  it('supports -p alias for --print-config', () => {
+    const opts = asOptions(parseArgs(baseConfig, ['-p']));
+    expect(opts.printConfig).toBe(true);
+  });
+
+  it('resolves CLI overrides when printing the configuration', () => {
+    const config: AppConfig = { media: { ...baseConfig.media, mode: 'copy', dryRun: false } };
+    const opts = asOptions(parseArgs(config, [
+      '-p', '-s', '~/picts', '-t', '/Volumes/media', '-m', 'move', '--dry-run', '-r', '-v',
+    ]));
+
+    expect(opts.printConfig).toBe(true);
+    expect(opts.source).not.toContain('~');
+    expect(opts.target).toBe('/Volumes/media');
+    expect(opts.mode).toBe('move');
+    expect(opts.dryRun).toBe(true);
+    expect(opts.recurse).toBe(true);
+    expect(opts.verbose).toBe(true);
+  });
+
   it('expands tilde in source and target', () => {
     const opts = asOptions(parseArgs(baseConfig, ['--source', '~/media', '--target', '~/archive']));
     expect(opts.source).not.toContain('~');
@@ -159,6 +186,7 @@ describe('displayHelp', () => {
     expect(output).toContain('--dry-run');
     expect(output).toContain('--recurse');
     expect(output).toContain('--verbose');
+    expect(output).toContain('--print-config');
     expect(output).toContain('--version');
     expect(output).toContain('--help');
   });
@@ -187,5 +215,56 @@ describe('displayVersion', () => {
   it('prints the package version followed by a newline', () => {
     displayVersion();
     expect(output).toMatch(/^\d+\.\d+\.\d+\n$/);
+  });
+});
+
+describe('displayConfig', () => {
+  let output = '';
+
+  beforeEach(() => {
+    output = '';
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      output += chunk;
+      return true;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function opts(overrides: Partial<ArchiveOptions> = {}): ArchiveOptions {
+    return {
+      source: '/src',
+      target: '/target',
+      mode: 'copy',
+      dryRun: false,
+      recurse: false,
+      verbose: false,
+      ...overrides,
+    };
+  }
+
+  it('prints resolved options and media types', () => {
+    const config: AppConfig = {
+      media: { mode: 'move', types: [{ name: 'photos', directory: 'Photos', extensions: ['jpg'] }] },
+    };
+
+    displayConfig(config, opts({ mode: 'date', dryRun: true }));
+
+    expect(output).toContain('Active configuration:');
+    expect(output).toContain('source: /src');
+    expect(output).toContain('target: /target');
+    expect(output).toContain('mode: date');
+    expect(output).toContain('dryRun: true');
+    expect(output).toContain('directory: Photos');
+    expect(output).toContain('extensions:');
+    expect(output).toContain('jpg');
+  });
+
+  it('shows "(not set)" when paths are omitted', () => {
+    displayConfig(baseConfig, opts({ source: '', target: '' }));
+    expect(output).toContain('source: (not set)');
+    expect(output).toContain('target: (not set)');
   });
 });

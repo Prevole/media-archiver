@@ -24,12 +24,13 @@ media-archiver --source <dir> --target <dir> [options]
 | `--dry-run` | — | No | `false` | Preview operations without writing any files |
 | `--recurse` | `-r` | No | `false` | Scan subdirectories of `--source` recursively |
 | `--verbose` | `-v` | No | `false` | Print detailed logs for every file operation |
+| `--print-config` | `-p` | No | `false` | Print the active configuration (config file + CLI overrides) and exit |
 | `--help` | `-h` | No | — | Display help message |
 
 ### Modes
 
 - **`copy`** — Copy source files to the target directory
-- **`move`** — Move source files to the target directory
+- **`move`** — Move source files to the target directory. Moves across filesystems (e.g. a local disk to a network share) are supported: when a rename is not possible, the file is copied with its timestamps preserved and the source is removed only after the copy succeeds.
 - **`date`** — Fix `atime` and `mtime` of existing files in the target directory (useful after a manual move)
 
 ### Output
@@ -52,6 +53,26 @@ Done
 
 With `--verbose`, every file operation is logged individually with timestamps and log levels.
 
+With `--print-config`, the effective configuration is printed as YAML and no files are touched:
+
+```
+Active configuration:
+  source: /Users/laurentprevost/Desktop/picts
+  target: /Volumes/media
+  mode: move
+  dryRun: false
+  recurse: false
+  verbose: false
+  media:
+    mode: copy
+    types:
+      - name: photos
+        directory: Photos
+        extensions:
+          - jpg
+          - jpeg
+```
+
 ### Examples
 
 ```sh
@@ -63,6 +84,12 @@ media-archiver --source /Volumes/CARD/DCIM --target ~/Media
 
 # Move files recursively with detailed logs
 media-archiver -s /Volumes/CARD -t ~/Media -m move -r --verbose
+
+# Inspect the active configuration (works without --source/--target)
+media-archiver --print-config
+
+# Inspect the effective configuration for a specific run
+media-archiver --print-config -s ~/Desktop/picts -t /Volumes/media -m move
 ```
 
 ## Destination structure

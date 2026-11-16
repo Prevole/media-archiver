@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import pino from 'pino';
-import { displayHelp, displayVersion, parseArgs } from '../cli/args.js';
+import { displayConfig, displayHelp, displayVersion, parseArgs } from '../cli/args.js';
 import { loadConfig } from '../config/loader.js';
 import { archive } from '../services/archiver.js';
 
@@ -16,6 +16,11 @@ try {
 
   if (options === 'version') {
     displayVersion();
+    process.exit(0);
+  }
+
+  if (options.printConfig) {
+    displayConfig(config, options);
     process.exit(0);
   }
 
