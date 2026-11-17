@@ -21,3 +21,23 @@ updates:
           - "minor"
           - "patch"
 
+  - package-ecosystem: "github-actions"
+    directory: "/"
+
+    schedule:
+      interval: "weekly"
+
+    open-pull-requests-limit: 5
+
+    commit-message:
+      prefix: "build(deps)"
+
+    labels:
+      - "dependencies"
+
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
+
