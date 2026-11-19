@@ -24,26 +24,25 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const EXTENSIONS = new Set(['.heic', '.aae', '.mov']);
 const MIN_DATE = new Date(2026, 2, 1); // March 2026
 
-function sameDay(a, b) {
+export function sameDay(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 // Extracts the YYYY/MM/DD date directory from the file path.
-function extractFolderDate(filePath) {
+export function extractFolderDate(filePath) {
   const match = filePath.match(/(\d{4})\/(\d{2})\/(\d{2})/);
   if (!match) return undefined;
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
 
-// Reads the image creation date via sips (format `YYYY:MM:DD HH:MM:SS`).
-function readSipsCreation(filePath) {
-  const result = spawnSync('sips', ['-g', 'creation', filePath], { encoding: 'utf8' });
-  if (result.error || result.status !== 0) return undefined;
-  const line = (result.stdout || '').split('\n').find((l) => /creation:/i.test(l));
+// Parses a `sips -g creation` output line (e.g. `creation: 2026:03:19 08:22:28`).
+export function parseSipsCreationLine(output) {
+  const line = String(output ?? '').split('\n').find((l) => /creation:/i.test(l));
   const match = line?.match(/(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
   if (!match) return undefined;
   return new Date(
@@ -56,7 +55,14 @@ function readSipsCreation(filePath) {
   );
 }
 
-function collectFiles(dir) {
+// Reads the image creation date via sips, when it is available.
+export function readSipsCreation(filePath) {
+  const result = spawnSync('sips', ['-g', 'creation', filePath], { encoding: 'utf8' });
+  if (result.error || result.status !== 0) return undefined;
+  return parseSipsCreationLine(result.stdout);
+}
+
+export function collectFiles(dir) {
   const files = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const entryPath = path.join(dir, entry.name);
@@ -69,9 +75,20 @@ function collectFiles(dir) {
   return files;
 }
 
-function processFile(filePath) {
+export function processFile(filePath) {
   const stats = fs.statSync(filePath);
   const folderDate = extractFolderDate(filePath);
+
+  // Constraint: if the file dates already are the folder date (same day),
+  // nothing is changed.
+  if (folderDate && sameDay(stats.mtime, folderDate)) {
+    const y = folderDate.getFullYear();
+    const mo = String(folderDate.getMonth() + 1).padStart(2, '0');
+    const d = String(folderDate.getDate()).padStart(2, '0');
+    console.log(`SKIP  dates already folder date ${filePath} (${y}-${mo}-${d})`);
+    return 'skipped';
+  }
+
   const creation = readSipsCreation(filePath);
 
   const target =
@@ -97,21 +114,12 @@ function processFile(filePath) {
     return 'skipped';
   }
 
-  if (folderDate && sameDay(stats.mtime, folderDate)) {
-    const y = folderDate.getFullYear();
-    const mo = String(folderDate.getMonth() + 1).padStart(2, '0');
-    const d = String(folderDate.getDate()).padStart(2, '0');
-    console.log(`SKIP  dates already folder date ${filePath} (${y}-${mo}-${d})`);
-    return 'skipped';
-  }
-
   fs.utimesSync(filePath, target, target);
   console.log(`SET   ${filePath} -> ${target.toISOString()} (${creation ? 'creation' : 'folder date + current time'})`);
   return 'updated';
 }
 
-function main() {
-  const root = process.argv[2];
+export function main(root) {
   if (!root) {
     console.error('Usage: node fix-dates-from-archive.mjs <path>');
     process.exit(1);
@@ -130,4 +138,7 @@ function main() {
   console.log(`\nDone: ${updated} updated, ${skipped} skipped.`);
 }
 
-main();
+const isMain = process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  main(process.argv[2]);
+}
