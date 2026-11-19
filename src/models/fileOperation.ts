@@ -25,8 +25,9 @@ export interface ArchiveOptions {
 
 /**
  * Timestamps extracted from a source file's stat.
- * atime and mtime intentionally set to the same value (atime)
- * so that archiving does not alter the perceived creation date.
+ * The destination atime mirrors the source atime and the destination
+ * mtime mirrors the source mtime, so that archiving does not alter the
+ * perceived dates of the archived files.
  */
 export interface FileTimes {
   atime: Date;

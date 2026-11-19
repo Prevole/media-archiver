@@ -54,7 +54,7 @@ describe('resolveMediaType', () => {
 });
 
 describe('buildFileTimes', () => {
-  it('sets mtime equal to atime (intentional behavior for archiving)', () => {
+  it('sets mtime to the source mtime (capture date)', () => {
     const atime = new Date('2026-04-05T10:00:00Z');
     const mtime = new Date('2026-04-05T12:00:00Z');
     const stats = makeStat({ atime, mtime });
@@ -62,9 +62,9 @@ describe('buildFileTimes', () => {
     const times = buildFileTimes(stats);
 
     expect(times.atime).toBe(atime);
-    expect(times.mtime).toBe(atime); // mtime mirrors atime intentionally
+    expect(times.mtime).toBe(mtime); // mtime mirrors the source mtime
     expect(times.atimeMs).toBe(Math.floor(atime.getTime() / 1000));
-    expect(times.mtimeMs).toBe(Math.floor(atime.getTime() / 1000));
+    expect(times.mtimeMs).toBe(Math.floor(mtime.getTime() / 1000));
   });
 
   it('records birthtime separately', () => {

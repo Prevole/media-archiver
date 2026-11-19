@@ -40,16 +40,17 @@ export function resolveMediaType(
 
 /**
  * Extracts FileTimes from a file's Stats.
- * atime and mtime are intentionally set to the same value (atime)
- * so that archiving preserves the original capture date.
+ * The destination atime mirrors the source atime and the destination
+ * mtime mirrors the source mtime (the capture date for photos imported
+ * from devices such as the iPhone via Image Capture).
  */
 export function buildFileTimes(stats: Stats): FileTimes {
   return {
     atime: stats.atime,
     atimeMs: toUnixSeconds(stats.atime),
-    // Intentional: mtime is set to atime to preserve capture date
-    mtime: stats.atime,
-    mtimeMs: toUnixSeconds(stats.atime),
+    // The destination mtime mirrors the source mtime (capture date)
+    mtime: stats.mtime,
+    mtimeMs: toUnixSeconds(stats.mtime),
     btime: stats.birthtime,
     btimeMs: toUnixSeconds(stats.birthtime),
   };
